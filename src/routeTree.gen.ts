@@ -19,6 +19,7 @@ import { Route as DiagnosticoRouteImport } from './routes/diagnostico'
 import { Route as HistoricoRouteImport } from './routes/historico'
 import { Route as AuthenticatedContaRouteImport } from './routes/_authenticated/conta'
 import { Route as AuthenticatedTalhoesRouteImport } from './routes/_authenticated/talhoes'
+import { Route as ApiPublicSensorsIngestRouteImport } from './routes/api/public/sensors.ingest'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -69,6 +70,11 @@ const AuthenticatedTalhoesRoute = AuthenticatedTalhoesRouteImport.update({
   path: '/talhoes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicSensorsIngestRoute = ApiPublicSensorsIngestRouteImport.update({
+  id: '/api/public/sensors/ingest',
+  path: '/api/public/sensors/ingest',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/historico': typeof HistoricoRoute
   '/conta': typeof AuthenticatedContaRoute
   '/talhoes': typeof AuthenticatedTalhoesRoute
+  '/api/public/sensors/ingest': typeof ApiPublicSensorsIngestRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -91,6 +98,7 @@ export interface FileRoutesByTo {
   '/historico': typeof HistoricoRoute
   '/conta': typeof AuthenticatedContaRoute
   '/talhoes': typeof AuthenticatedTalhoesRoute
+  '/api/public/sensors/ingest': typeof ApiPublicSensorsIngestRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -104,6 +112,7 @@ export interface FileRoutesById {
   '/historico': typeof HistoricoRoute
   '/_authenticated/conta': typeof AuthenticatedContaRoute
   '/_authenticated/talhoes': typeof AuthenticatedTalhoesRoute
+  '/api/public/sensors/ingest': typeof ApiPublicSensorsIngestRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -117,6 +126,7 @@ export interface FileRouteTypes {
     | '/historico'
     | '/conta'
     | '/talhoes'
+    | '/api/public/sensors/ingest'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/historico'
     | '/conta'
     | '/talhoes'
+    | '/api/public/sensors/ingest'
   id:
     | '__root__'
     | '/'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/historico'
     | '/_authenticated/conta'
     | '/_authenticated/talhoes'
+    | '/api/public/sensors/ingest'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -151,6 +163,7 @@ export interface RootRouteChildren {
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   DiagnosticoRoute: typeof DiagnosticoRoute
   HistoricoRoute: typeof HistoricoRoute
+  ApiPublicSensorsIngestRoute: typeof ApiPublicSensorsIngestRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -225,6 +238,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTalhoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/sensors/ingest': {
+      id: '/api/public/sensors/ingest'
+      path: '/api/public/sensors/ingest'
+      fullPath: '/api/public/sensors/ingest'
+      preLoaderRoute: typeof ApiPublicSensorsIngestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -250,6 +270,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConfiguracoesRoute: ConfiguracoesRoute,
   DiagnosticoRoute: DiagnosticoRoute,
   HistoricoRoute: HistoricoRoute,
+  ApiPublicSensorsIngestRoute: ApiPublicSensorsIngestRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

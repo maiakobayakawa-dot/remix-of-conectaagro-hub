@@ -3,12 +3,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/use-auth";
 import { Button } from "@/components/ui/button";
-import { BookOpen, CalendarDays, LayoutDashboard, Leaf, MapPin, Moon, Microscope, Settings, Sun } from "lucide-react";
+import { BookOpen, CalendarDays, LayoutDashboard, Leaf, MapPin, Radio, Moon, Microscope, Settings, Sun } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 const nav = [
   { to: "/", label: "Painel", icon: LayoutDashboard },
   { to: "/talhoes", label: "Talhões", icon: MapPin },
+  { to: "/sensores", label: "Sensores", icon: Radio },
   { to: "/diagnostico", label: "Diagnóstico", icon: Microscope },
   { to: "/caderno", label: "Caderno", icon: BookOpen },
   { to: "/historico", label: "Histórico", icon: CalendarDays },
@@ -79,7 +80,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <main className="app-content min-w-0 flex-1 px-4 pb-28 pt-5 sm:px-6 lg:px-10 lg:pb-10 lg:pt-8">{children}</main>
 
-      <nav aria-label="Menu principal" className="mobile-nav fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-sidebar-border bg-sidebar text-sidebar-foreground lg:hidden">
+      <nav aria-label="Menu principal" className="mobile-nav fixed inset-x-0 bottom-0 z-30 grid grid-cols-7 border-t border-sidebar-border bg-sidebar text-sidebar-foreground lg:hidden">
         {nav.map(({ to, label, icon: Icon }) => (
           <Link key={to} to={to} activeOptions={{ exact: to === "/" }}
             aria-label={label}
