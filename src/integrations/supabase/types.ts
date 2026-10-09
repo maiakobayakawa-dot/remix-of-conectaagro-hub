@@ -177,6 +177,8 @@ export type Database = {
       }
       sensors: {
         Row: {
+          alert_max: number | null
+          alert_min: number | null
           created_at: string
           id: string
           key_hash: string
@@ -184,10 +186,13 @@ export type Database = {
           metric: string
           model: string
           name: string
+          offline_minutes: number
           owner_id: string
           plot_id: string
         }
         Insert: {
+          alert_max?: number | null
+          alert_min?: number | null
           created_at?: string
           id?: string
           key_hash: string
@@ -195,10 +200,13 @@ export type Database = {
           metric: string
           model?: string
           name: string
+          offline_minutes?: number
           owner_id?: string
           plot_id: string
         }
         Update: {
+          alert_max?: number | null
+          alert_min?: number | null
           created_at?: string
           id?: string
           key_hash?: string
@@ -206,6 +214,7 @@ export type Database = {
           metric?: string
           model?: string
           name?: string
+          offline_minutes?: number
           owner_id?: string
           plot_id?: string
         }
