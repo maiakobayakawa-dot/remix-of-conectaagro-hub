@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AlertTriangle, CloudRain, CloudSun, Cloud, Droplets, Gauge, Sprout, Star, Sun, Thermometer, Timer, Waves } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Area, AreaChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { PageHeader, Panel } from "@/components/AppShell";
+import { Panel } from "@/components/AppShell";
+import { DashboardGreeting } from "@/components/DashboardGreeting";
 import { waterBalance } from "@/lib/agro";
 import { hourly, type Health } from "@/lib/mock-data";
 import { PlotNotifications } from "@/components/PlotNotifications";
@@ -71,8 +72,7 @@ function Dashboard() {
 
   return (
     <>
-      <PageHeader title="Bom dia, Maria" subtitle="Quinta, 8 de outubro · Safra 2025/26 · 123 ha monitorados"
-        right={<span className="flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary"><span className="live-dot h-2 w-2 rounded-full bg-primary" />Ao vivo</span>} />
+      <DashboardGreeting />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
         {metrics.map(({ label, value, unit, icon: Icon, tone }) => (
