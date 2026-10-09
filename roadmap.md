@@ -21,3 +21,7 @@
 # Plot guidance and notifications
 - [ ] Add in-app guidance and notifications selectable by plot, clearly marked as simulated when using demonstration data.
 - [ ] Verify plot switching and guidance display.
+
+# Remix setup
+- [ ] Rescaffold an empty Drizzle migration set for the new project's database.
+- [ ] Connect a managed Google Maps Platform connection and link it to the remixed project.
