@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Copy, KeyRound, Plus, Radio, Save, Scale, Trash2 } from "lucide-react";
+import { AlertTriangle, BellRing, Copy, KeyRound, Plus, Radio, Save, Scale, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PageHeader, Panel } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { usePlotsQuery } from "@/lib/plots-store";
-import { dailyStats, metrics, readingSchema, sensorSchema, useReadings, useSensorMutations, useSensors, type Metric, type Sensor } from "@/lib/sensors";
+import { dailyStats, metrics, readingSchema, sensorAlerts, sensorSchema, useReadings, useSensorMutations, useSensors, type Metric, type Sensor } from "@/lib/sensors";
 import { useBaseForecast } from "@/lib/weather";
 
 export const Route = createFileRoute("/_authenticated/sensores")({
@@ -50,13 +50,14 @@ function Sensores() {
   const sensors = sensorsQ.data ?? [];
   const readings = readingsQ.data ?? [];
 
-  const [form, setForm] = useState({ name: "", model: "", metric: "temperature" as Metric, plot_id: "" });
+  const [form, setForm] = useState({ name: "", model: "", metric: "temperature" as Metric, plot_id: "", alert_min: "", alert_max: "", offline_minutes: "60" });
+  const alerts = sensorAlerts(sensors, readings);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [shownKey, setShownKey] = useState<{ name: string; key: string } | null>(null);
 
   const save = async () => {
-    const r = sensorSchema.safeParse({ ...form, plot_id: form.plot_id || myPlots[0]?.uuid || "" });
+    const r = sensorSchema.safeParse({ ...form, plot_id: form.plot_id || myPlots[0]?.uuid || "", alert_min: num(form.alert_min), alert_max: num(form.alert_max), offline_minutes: Number(form.offline_minutes) });
     if (!r.success) { setErrors(Object.fromEntries(r.error.issues.map((i) => [String(i.path[0]), i.message]))); return; }
     setErrors({}); setSaving(true);
     try {
@@ -70,6 +71,16 @@ function Sensores() {
   return (
     <>
       <PageHeader title="Sensores" subtitle="Cadastre os sensores de cada talhão. As leituras chegam automaticamente ou podem ser lançadas à mão." />
+      <Panel title={`Alertas dos sensores (${alerts.length})`} icon={<BellRing className="h-5 w-5 text-warning" />} className="mb-5">
+        {alerts.length === 0 ? <p className="text-sm text-muted-foreground">Tudo certo: todos os sensores estão enviando leituras dentro dos limites.</p> : (
+          <ul className="space-y-2">{alerts.map((a) => (
+            <li key={a.sensor.id + a.kind} role="alert" className={`flex items-start gap-2 rounded-lg border p-3 text-sm ${a.kind === "offline" ? "border-warning/50 bg-warning/10" : "border-destructive/50 bg-destructive/10"}`}>
+              <AlertTriangle className={`mt-0.5 h-4 w-4 shrink-0 ${a.kind === "offline" ? "text-warning" : "text-destructive"}`} />
+              <span><b>{a.sensor.name}</b> · {plots.find((p) => p.uuid === a.sensor.plot_id)?.id ?? "—"}: {a.kind === "offline" ? `parou de enviar leituras. ${a.message}.` : a.message}</span>
+            </li>))}</ul>
+        )}
+        <p className="mt-3 text-xs text-muted-foreground">Os alertas aparecem aqui enquanto o app está aberto (atualiza a cada 15 s). Ainda não há envio por e-mail ou celular.</p>
+      </Panel>
       {shownKey && <KeyNotice name={shownKey.name} sensorKey={shownKey.key} onClose={() => setShownKey(null)} />}
 
       <div className="grid gap-5 xl:grid-cols-3">
@@ -82,6 +93,7 @@ function Sensores() {
               <label className="grid gap-1 text-sm">Talhão<select className={input} value={form.plot_id || myPlots[0]?.uuid} onChange={(e) => setForm({ ...form, plot_id: e.target.value })}>
                 {myPlots.map((p) => <option key={p.uuid} value={p.uuid}>{p.id} · {p.name}</option>)}</select>{errors["plot_id"] && <span className="text-xs text-destructive">{errors["plot_id"]}</span>}</label>
               <label className="grid gap-1 text-sm">Modelo / fabricante (opcional)<input className={input} value={form.model} maxLength={80} onChange={(e) => setForm({ ...form, model: e.target.value })} /></label>
+              <LimitFields v={form} set={(p) => setForm({ ...form, ...p })} unit={metrics[form.metric].unit} error={errors["alert_min"] ?? errors["offline_minutes"]} />
               <Button type="submit" disabled={saving}><Save className="h-4 w-4" />{saving ? "Salvando…" : "Salvar sensor"}</Button>
             </form>
           )}
@@ -99,6 +111,40 @@ function Sensores() {
 
       <Comparison sensors={sensors} />
     </>
+  );
+}
+
+const num = (v: string) => v.trim() === "" ? null : Number(v.replace(",", "."));
+type Limits = { alert_min: string; alert_max: string; offline_minutes: string };
+function LimitFields({ v, set, unit, error }: { v: Limits; set: (p: Partial<Limits>) => void; unit: string; error?: string | undefined }) {
+  return (
+    <fieldset className="grid grid-cols-2 gap-2 rounded-lg border p-3">
+      <legend className="px-1 text-xs font-medium">Limites para alerta (opcional)</legend>
+      <label className="grid gap-1 text-xs">Mínimo ({unit})<input className={input} inputMode="decimal" value={v.alert_min} onChange={(e) => set({ alert_min: e.target.value })} /></label>
+      <label className="grid gap-1 text-xs">Máximo ({unit})<input className={input} inputMode="decimal" value={v.alert_max} onChange={(e) => set({ alert_max: e.target.value })} /></label>
+      <label className="col-span-2 grid gap-1 text-xs">Avisar se ficar sem leituras por (min)<input className={input} inputMode="numeric" value={v.offline_minutes} onChange={(e) => set({ offline_minutes: e.target.value })} /></label>
+      {error && <span className="col-span-2 text-xs text-destructive">{error}</span>}
+    </fieldset>
+  );
+}
+
+function LimitsEditor({ sensor }: { sensor: Sensor }) {
+  const mut = useSensorMutations();
+  const [open, setOpen] = useState(false);
+  const [v, setV] = useState<Limits>({ alert_min: sensor.alert_min?.toString() ?? "", alert_max: sensor.alert_max?.toString() ?? "", offline_minutes: String(sensor.offline_minutes) });
+  const [error, setError] = useState<string>();
+  if (!open) return <Button variant="outline" size="sm" onClick={() => setOpen(true)}><BellRing className="h-4 w-4" />Limites</Button>;
+  const save = async () => {
+    const r = sensorSchema.safeParse({ name: sensor.name, model: sensor.model, metric: sensor.metric, plot_id: sensor.plot_id, alert_min: num(v.alert_min), alert_max: num(v.alert_max), offline_minutes: Number(v.offline_minutes) });
+    if (!r.success) { setError(r.error.issues[0]?.message); return; }
+    try { await mut.setLimits(sensor.id, { alert_min: r.data.alert_min, alert_max: r.data.alert_max, offline_minutes: r.data.offline_minutes }); toast.success("Limites salvos"); setOpen(false); }
+    catch { toast.error("Não foi possível salvar"); }
+  };
+  return (
+    <div className="mt-2 grid w-full gap-2">
+      <LimitFields v={v} set={(p) => setV({ ...v, ...p })} unit={metrics[sensor.metric].unit} error={error} />
+      <div className="flex gap-2"><Button size="sm" onClick={() => void save()}><Save className="h-4 w-4" />Salvar limites</Button><Button size="sm" variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button></div>
+    </div>
   );
 }
 
@@ -128,6 +174,7 @@ function SensorCard({ sensor, plotLabel, last, onKey }: { sensor: Sensor; plotLa
       </div>
       <p className="mt-3 font-display text-2xl font-semibold tabular-nums">{last ? last.value : "—"}<span className="ml-1 text-sm font-normal text-muted-foreground">{m.unit}</span></p>
       <p className="text-xs text-muted-foreground">{last ? `${new Date(last.recorded_at).toLocaleString("pt-BR")} · ${last.source === "device" ? "automática" : "manual"}` : "Nenhuma leitura recebida"}</p>
+      {(sensor.alert_min != null || sensor.alert_max != null) && <p className="mt-1 text-xs text-muted-foreground">Limites: {sensor.alert_min ?? "—"} a {sensor.alert_max ?? "—"} {m.unit}</p>}
       {mine && (
         <>
           <form className="mt-3 grid grid-cols-2 gap-2" onSubmit={(e) => { e.preventDefault(); void send(); }}>
@@ -136,6 +183,7 @@ function SensorCard({ sensor, plotLabel, last, onKey }: { sensor: Sensor; plotLa
             <Button type="submit" className="col-span-2" disabled={busy}>{busy ? "Enviando…" : "Enviar leitura manual"}</Button>
           </form>
           <div className="mt-2 flex flex-wrap gap-2">
+            <LimitsEditor sensor={sensor} />
             <Button variant="outline" size="sm" onClick={async () => { if (!confirm("Gerar nova chave? A anterior deixa de funcionar.")) return; try { onKey(await mut.rotateKey(sensor.id)); } catch { toast.error("Falha ao gerar chave"); } }}><KeyRound className="h-4 w-4" />Nova chave</Button>
             <Button variant="ghost" size="sm" onClick={async () => { if (!confirm(`Excluir ${sensor.name} e suas leituras?`)) return; try { await mut.remove(sensor.id); toast.success("Sensor excluído"); } catch { toast.error("Falha ao excluir"); } }}><Trash2 className="h-4 w-4" />Excluir</Button>
           </div>

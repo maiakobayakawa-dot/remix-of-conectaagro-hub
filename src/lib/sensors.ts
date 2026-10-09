@@ -17,7 +17,27 @@ export const sensorSchema = z.object({
   model: z.string().trim().max(80),
   metric: z.enum(Object.keys(metrics) as [Metric, ...Metric[]]),
   plot_id: z.string().uuid("Selecione um talhão"),
-});
+  alert_min: z.number().nullable(),
+  alert_max: z.number().nullable(),
+  offline_minutes: z.number().int().min(5, "Mínimo 5 min").max(10080, "Máximo 7 dias"),
+}).refine((v) => v.alert_min == null || v.alert_max == null || v.alert_min <= v.alert_max, { message: "Mínimo maior que o máximo", path: ["alert_min"] });
+
+export type SensorAlert = { sensor: Sensor; kind: "offline" | "low" | "high"; message: string };
+/** Alerts for sensors that stopped reporting or whose latest reading is outside configured limits. */
+export function sensorAlerts(sensors: Sensor[], readings: Reading[], now = Date.now()): SensorAlert[] {
+  const out: SensorAlert[] = [];
+  for (const s of sensors) {
+    const m = metrics[s.metric];
+    const ref = s.last_seen_at ?? s.created_at;
+    const mins = (now - new Date(ref).getTime()) / 60000;
+    if (mins > s.offline_minutes) out.push({ sensor: s, kind: "offline", message: s.last_seen_at ? `Sem leituras há ${mins >= 120 ? `${Math.floor(mins / 60)} h` : `${Math.floor(mins)} min`}` : "Ainda não enviou nenhuma leitura" });
+    const last = readings.find((r) => r.sensor_id === s.id);
+    if (!last) continue;
+    if (s.alert_min != null && last.value < s.alert_min) out.push({ sensor: s, kind: "low", message: `${m.label} em ${last.value} ${m.unit}, abaixo do mínimo de ${s.alert_min} ${m.unit}` });
+    if (s.alert_max != null && last.value > s.alert_max) out.push({ sensor: s, kind: "high", message: `${m.label} em ${last.value} ${m.unit}, acima do máximo de ${s.alert_max} ${m.unit}` });
+  }
+  return out;
+}
 
 export function readingSchema(metric: Metric) {
   const m = metrics[metric];
@@ -27,7 +47,7 @@ export function readingSchema(metric: Metric) {
   });
 }
 
-export type Sensor = { id: string; owner_id: string; plot_id: string; name: string; model: string; metric: Metric; last_seen_at: string | null; created_at: string };
+export type Sensor = { id: string; owner_id: string; plot_id: string; name: string; model: string; metric: Metric; last_seen_at: string | null; created_at: string; alert_min: number | null; alert_max: number | null; offline_minutes: number };
 export type Reading = { id: string; sensor_id: string; value: number; source: string; recorded_at: string };
 
 async function sha256(text: string) {
@@ -47,9 +67,9 @@ export function useSensors() {
     refetchInterval: 15000,
     queryFn: async () => {
       const { data, error } = await supabase.from("sensors")
-        .select("id, owner_id, plot_id, name, model, metric, last_seen_at, created_at").order("created_at");
+        .select("id, owner_id, plot_id, name, model, metric, last_seen_at, created_at, alert_min, alert_max, offline_minutes").order("created_at");
       if (error) throw error;
-      return (data ?? []) as Sensor[];
+      return (data ?? []).map((s) => ({ ...s, alert_min: s.alert_min == null ? null : Number(s.alert_min), alert_max: s.alert_max == null ? null : Number(s.alert_max) })) as Sensor[];
     },
   });
 }
@@ -82,6 +102,11 @@ export function useSensorMutations() {
       if (error) throw error;
       await refresh();
       return key;
+    },
+    async setLimits(id: string, limits: { alert_min: number | null; alert_max: number | null; offline_minutes: number }) {
+      const { error } = await supabase.from("sensors").update(limits).eq("id", id);
+      if (error) throw error;
+      await refresh();
     },
     async rotateKey(id: string) {
       const key = newKey();
