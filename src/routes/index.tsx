@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { Area, AreaChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { PageHeader, Panel } from "@/components/AppShell";
 import { waterBalance } from "@/lib/agro";
-import { forecast, hourly, type Health } from "@/lib/mock-data";
+import { hourly, type Health } from "@/lib/mock-data";
 import { PlotNotifications } from "@/components/PlotNotifications";
 import { usePlots } from "@/lib/plots-store";
 import { Button } from "@/components/ui/button";
+import { useForecast } from "@/lib/weather";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -54,7 +55,10 @@ function Dashboard() {
   const [favorites, setFavorites] = useState<string[]>([]);
   const visiblePlots = plotTab === "favorites" ? plots.filter((p) => favorites.includes(p.uuid ?? p.id)) : plots;
   const plot = plots.find((p) => p.id === plotId) ?? plots[0]!;
-  const wb = waterBalance({ et0: forecast[0]!.et0, kc: plot.kc, rainForecast: forecast[0]!.rain, soilMoisture: plot.moisture });
+  const fq = useForecast(plot.location);
+  const forecast = fq.data ?? [];
+  const today = forecast[0] ?? { et0: 0, rain: 0 };
+  const wb = waterBalance({ et0: today.et0, kc: plot.kc, rainForecast: today.rain, soilMoisture: plot.moisture });
   const fillPct = Math.min(100, (wb.litersPerM2 / 8) * 100);
 
   const metrics = [
@@ -100,7 +104,7 @@ function Dashboard() {
             </div>
           </div>
           <div className="mt-6 grid grid-cols-3 gap-2 text-center text-xs">
-            <div className="rounded-xl bg-water-foreground/10 p-2"><p className="opacity-70">ET₀</p><p className="text-base font-semibold">{forecast[0]!.et0} mm</p></div>
+            <div className="rounded-xl bg-water-foreground/10 p-2"><p className="opacity-70">ET₀</p><p className="text-base font-semibold">{fq.data ? `${today.et0} mm` : "—"}</p></div>
             <div className="rounded-xl bg-water-foreground/10 p-2"><p className="opacity-70">Kc ({plot.stage.split(" ")[0] ?? ""})</p><p className="text-base font-semibold">{plot.kc}</p></div>
             <div className="rounded-xl bg-water-foreground/10 p-2"><p className="opacity-70">Chuva efetiva</p><p className="text-base font-semibold">{wb.effectiveRain} mm</p></div>
           </div>
@@ -124,7 +128,8 @@ function Dashboard() {
         </Panel>
       </div>
 
-      <Panel title="Previsão para 7 dias" icon={<CloudSun className="h-5 w-5 text-water" />} className="mt-5">
+      <Panel title={`Previsão para 7 dias · ${plot.id}`} icon={<CloudSun className="h-5 w-5 text-water" />} className="mt-5">
+        <p className="mb-3 text-xs text-muted-foreground">{!plot.location ? "Este talhão não tem localização cadastrada." : fq.isPending ? "Carregando previsão real…" : fq.isError ? "Não foi possível carregar a previsão." : "Dados reais via Open-Meteo para a localização do talhão."}{fq.isError && <Button variant="link" size="sm" onClick={() => fq.refetch()}>Tentar novamente</Button>}</p>
         <div className="grid grid-cols-2 gap-2 min-[400px]:grid-cols-3 sm:grid-cols-4 lg:grid-cols-7">
           {forecast.map((f) => { const I = wIcon[f.icon]; return (
             <div key={f.day} className="rounded-xl bg-muted p-3 text-center">
