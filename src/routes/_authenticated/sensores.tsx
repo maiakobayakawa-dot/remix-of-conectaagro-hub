@@ -76,11 +76,11 @@ function Sensores() {
         <Panel title="Novo sensor" icon={<Plus className="h-5 w-5 text-primary" />}>
           {myPlots.length === 0 ? <p className="text-sm text-muted-foreground">Cadastre um talhão primeiro na tela Talhões.</p> : (
             <form className="grid gap-3" onSubmit={(e) => { e.preventDefault(); void save(); }}>
-              <label className="grid gap-1 text-sm">Nome<input className={input} value={form.name} maxLength={80} placeholder="Ex.: Estação T1 norte" onChange={(e) => setForm({ ...form, name: e.target.value })} />{errors.name && <span className="text-xs text-destructive">{errors.name}</span>}</label>
+              <label className="grid gap-1 text-sm">Nome<input className={input} value={form.name} maxLength={80} placeholder="Ex.: Estação T1 norte" onChange={(e) => setForm({ ...form, name: e.target.value })} />{errors["name"] && <span className="text-xs text-destructive">{errors["name"]}</span>}</label>
               <label className="grid gap-1 text-sm">O que mede<select className={input} value={form.metric} onChange={(e) => setForm({ ...form, metric: e.target.value as Metric })}>
                 {Object.entries(metrics).map(([k, m]) => <option key={k} value={k}>{m.label} ({m.unit})</option>)}</select></label>
               <label className="grid gap-1 text-sm">Talhão<select className={input} value={form.plot_id || myPlots[0]?.uuid} onChange={(e) => setForm({ ...form, plot_id: e.target.value })}>
-                {myPlots.map((p) => <option key={p.uuid} value={p.uuid}>{p.id} · {p.name}</option>)}</select>{errors.plot_id && <span className="text-xs text-destructive">{errors.plot_id}</span>}</label>
+                {myPlots.map((p) => <option key={p.uuid} value={p.uuid}>{p.id} · {p.name}</option>)}</select>{errors["plot_id"] && <span className="text-xs text-destructive">{errors["plot_id"]}</span>}</label>
               <label className="grid gap-1 text-sm">Modelo / fabricante (opcional)<input className={input} value={form.model} maxLength={80} onChange={(e) => setForm({ ...form, model: e.target.value })} /></label>
               <Button type="submit" disabled={saving}><Save className="h-4 w-4" />{saving ? "Salvando…" : "Salvar sensor"}</Button>
             </form>
@@ -102,7 +102,7 @@ function Sensores() {
   );
 }
 
-function SensorCard({ sensor, plotLabel, last, onKey }: { sensor: Sensor; plotLabel: string; last?: { value: number; recorded_at: string; source: string }; onKey: (k: string) => void }) {
+function SensorCard({ sensor, plotLabel, last, onKey }: { sensor: Sensor; plotLabel: string; last?: { value: number; recorded_at: string; source: string } | undefined; onKey: (k: string) => void }) {
   const mut = useSensorMutations();
   const { user } = usePlotsQuery();
   const mine = sensor.owner_id === user?.id;
