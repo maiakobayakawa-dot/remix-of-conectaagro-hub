@@ -41,3 +41,22 @@ export function useForecast(loc?: LatLng) {
     staleTime: 30 * 60 * 1000,
   });
 }
+
+export type BaseDay = { date: string; max: number; min: number; rain: number };
+
+/** Previsão-base dos últimos dias (modelo Open-Meteo) para comparar com leituras reais dos sensores. */
+export function useBaseForecast(loc?: LatLng) {
+  return useQuery({
+    queryKey: ["base-forecast", loc?.lat.toFixed(3), loc?.lng.toFixed(3)],
+    enabled: !!loc,
+    staleTime: 60 * 60 * 1000,
+    queryFn: async (): Promise<BaseDay[]> => {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc!.lat.toFixed(4)}&longitude=${loc!.lng.toFixed(4)}` +
+        "&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto&past_days=7&forecast_days=1";
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("weather");
+      const d = (await res.json()).daily;
+      return (d.time as string[]).map((t, i) => ({ date: t, max: Math.round(d.temperature_2m_max[i]), min: Math.round(d.temperature_2m_min[i]), rain: +(d.precipitation_sum[i] ?? 0).toFixed(1) }));
+    },
+  });
+}

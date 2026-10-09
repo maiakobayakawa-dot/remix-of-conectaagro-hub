@@ -14,3 +14,4 @@
 - Keep producer profiles owner-only, separate from plot sharing; granting land visibility must not grant personal profile access.
 - Store validated presentation preferences locally under an account-scoped key; settings checks must remain read-only and explicitly distinguish checks from a full security audit.
 - Reuse one validated producer profile form for signup and account editing; authenticated server functions derive the owner from verified context, while database validation also guards direct writes.
+- Field sensors authenticate to the public ingest route with a per-sensor random key whose SHA-256 hash alone is stored; database triggers validate ownership and value ranges so device and manual writes share one guard.

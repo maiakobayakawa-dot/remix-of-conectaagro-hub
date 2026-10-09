@@ -137,6 +137,88 @@ export type Database = {
         }
         Relationships: []
       }
+      sensor_readings: {
+        Row: {
+          created_at: string
+          id: string
+          owner_id: string
+          recorded_at: string
+          sensor_id: string
+          source: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          owner_id?: string
+          recorded_at?: string
+          sensor_id: string
+          source?: string
+          value: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          owner_id?: string
+          recorded_at?: string
+          sensor_id?: string
+          source?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sensor_readings_sensor_id_fkey"
+            columns: ["sensor_id"]
+            isOneToOne: false
+            referencedRelation: "sensors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sensors: {
+        Row: {
+          created_at: string
+          id: string
+          key_hash: string
+          last_seen_at: string | null
+          metric: string
+          model: string
+          name: string
+          owner_id: string
+          plot_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key_hash: string
+          last_seen_at?: string | null
+          metric: string
+          model?: string
+          name: string
+          owner_id?: string
+          plot_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key_hash?: string
+          last_seen_at?: string | null
+          metric?: string
+          model?: string
+          name?: string
+          owner_id?: string
+          plot_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sensors_plot_id_fkey"
+            columns: ["plot_id"]
+            isOneToOne: false
+            referencedRelation: "plots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       share_attempts: {
         Row: {
           attempted_at: string
